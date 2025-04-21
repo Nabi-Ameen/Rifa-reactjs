@@ -1,9 +1,14 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import TextInput from '../components/TextInput'
 import Button from '../components/Button'
 import { country } from '../assets/products';
+import axios from 'axios';
+import { baseUrl } from '../assets/baseUrl';
 
 const Home = () => {
+
+    const [singleUser, setSingleUser] = useState(null);
+    const [user, setUser] = useState();
 
     const [register, setRegister] = useState(
         {
@@ -16,6 +21,47 @@ const Home = () => {
         }
     );
 
+    useEffect(() => {
+        setRegister({
+            fullName: singleUser?.fullName || "",
+            dob: singleUser?.dob || "",
+            email: singleUser?.email || "",
+            phone: singleUser?.phone || "",
+            gender: singleUser?.gender || "Male",
+            country: singleUser?.country || ""
+        })
+    }, [singleUser?.id])
+
+    useEffect(() => {
+        getRegisteredUsers();
+    }, [])
+
+    ///////////////////////////get Users////////////////////////////////////
+    const getRegisteredUsers = async () => {
+        const response = await axios.get(`${baseUrl}/registration`);
+        setUser(response?.data?.data)
+    }
+    ////////////////get Single User////////////////////////////////////
+    const gitSingleUser = async (id) => {
+        const response = await axios.get(`${baseUrl}/singleRegistration/${id}`);
+        setSingleUser(response?.data?.data);
+    }
+    ///////////////// create User//////////////////////////////////////
+    const createUser = async (register) => {
+        await axios.post(`${baseUrl}/registration`, register);
+    }
+    ////////////// update user ////////////////////////////////
+    const updateUser = async (id, register) => {
+        await axios.patch(`${baseUrl}/updateRegistration/${id}`, register);
+    }
+
+    //////////////// delete user /////////////////////////
+
+    const delteSingleUser = async (id) => {
+        await axios.delete(`${baseUrl}/deleteRegistration/${id}`);
+        getRegisteredUsers();
+    }
+
     const handleChange = (e) => {
         const { value, name } = e.target;
         setRegister({
@@ -24,9 +70,27 @@ const Home = () => {
         })
     }
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        console.log("register", register)
+
+        if (singleUser) {
+            const id = singleUser?.id;
+            await updateUser(id, register)
+            setSingleUser(null)
+        } else {
+            await createUser(register);
+        }
+        await getRegisteredUsers();
+        setRegister(
+            {
+                fullName: "",
+                dob: "",
+                email: "",
+                phone: "",
+                gender: "Male",
+                country: ""
+            }
+        )
     }
 
     return (
@@ -140,10 +204,49 @@ const Home = () => {
                             </div>
                         </div>
 
-                        <Button label="Submit" type="submit" />
+                        <Button label={singleUser ? "Update" : "Submit"} type="submit" />
                     </div>
                 </div>
             </form>
+
+
+            <table className="min-w-full bg-white border border-gray-300 rounded-lg overflow-hidden shadow-md my-10">
+                <thead className="bg-gray-200 text-gray-700">
+                    <tr>
+                        <td className="px-4 py-2 border">S.No</td>
+                        <td className="px-4 py-2 border">Full Name</td>
+                        <td className="px-4 py-2 border">Email</td>
+                        <td className="px-4 py-2 border">mobileNo</td>
+                        <td className="px-4 py-2 border">Dob</td>
+                        <td className="px-4 py-2 border">Gender</td>
+                        <td className="px-4 py-2 border">Country</td>
+                        <td className="px-4 py-2 border">Action</td>
+                    </tr>
+                </thead>
+
+                <tbody>
+
+                    {
+                        user?.map((data, index) => {
+                            return (
+                                <tr key={index}>
+                                    <td className="px-4 py-2 border">{data?.id}</td>
+                                    <td className="px-4 py-2 border">{data?.fullName}</td>
+                                    <td className="px-4 py-2 border">{data?.email}</td>
+                                    <td className="px-4 py-2 border">{data?.phone}</td>
+                                    <td className="px-4 py-2 border">{data?.dob}</td>
+                                    <td className="px-4 py-2 border">{data?.gender}</td>
+                                    <td className="px-4 py-2 border">{data?.country}</td>
+                                    <td className="px-4 py-2 border">
+                                        <button className="bg-blue-600 text-white p-2 rounded-lg" onClick={() => gitSingleUser(data?.id)}>Edit</button>
+                                        <button className="bg-red-600 text-white p-2 rounded-lg" onClick={() => delteSingleUser(data?.id)}>Delete</button>
+                                    </td>
+                                </tr>
+                            )
+                        })
+                    }
+                </tbody>
+            </table>
 
 
         </div>
